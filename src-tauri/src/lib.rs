@@ -188,19 +188,23 @@ pub fn run() {
                     .expect("failed to resolve resource dir");
                 let dist_dir = resource_dir.join("dist");
 
-                let server = static_server::StaticFileServer::start(dist_dir)
-                    .expect("failed to start static file server");
-                let url = server.url();
-                log::info!("Static file server started at {}", url);
+                if dist_dir.exists() {
+                    let server = static_server::StaticFileServer::start(dist_dir)
+                        .expect("failed to start static file server");
+                    let port = server.port();
+                    let url = server.url();
+                    log::info!("Static file server started at {}", url);
 
-                // Leak the server so it lives for the entire app lifetime
-                Box::leak(Box::new(server));
+                    // Leak the server so it lives for the entire app lifetime
+                    Box::leak(Box::new(server));
 
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.eval(&format!(
-                        "window.location.replace('{}')",
-                        url
-                    ));
+                    // Navigate the main window to the HTTP server
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.eval(&format!(
+                            "window.location.href = '{}'",
+                            url
+                        ));
+                    }
                 }
             }
 
