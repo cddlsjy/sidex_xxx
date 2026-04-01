@@ -230,7 +230,10 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 	}
 
 	private updateTabSizing(fromEvent: boolean): void {
-		const [tabsContainer, tabSizingFixedDisposables] = assertReturnsAllDefined(this.tabsContainer, this.tabSizingFixedDisposables);
+		if (!this.tabsContainer || !this.tabSizingFixedDisposables) {
+			return;
+		}
+		const [tabsContainer, tabSizingFixedDisposables] = [this.tabsContainer, this.tabSizingFixedDisposables];
 
 		tabSizingFixedDisposables.clear();
 
@@ -519,7 +522,10 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 		this.updateTabsControlVisibility();
 
 		// Create tabs as needed
-		const [tabsContainer, tabsScrollbar] = assertReturnsAllDefined(this.tabsContainer, this.tabsScrollbar);
+		if (!this.tabsContainer || !this.tabsScrollbar) {
+			return false;
+		}
+		const [tabsContainer, tabsScrollbar] = [this.tabsContainer, this.tabsScrollbar];
 		for (let i = tabsContainer.children.length; i < this.tabsModel.count; i++) {
 			tabsContainer.appendChild(this.createTab(i, tabsContainer, tabsScrollbar));
 		}
@@ -606,7 +612,10 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 		if (this.tabsModel.count) {
 
 			// Remove tabs that got closed
-			const tabsContainer = assertReturnsDefined(this.tabsContainer);
+			if (!this.tabsContainer) {
+				return false;
+			}
+			const tabsContainer = this.tabsContainer;
 			while (tabsContainer.children.length > this.tabsModel.count) {
 
 				// Remove one tab from container (must be the last to keep indexes in order!)
@@ -808,7 +817,10 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 	}
 
 	private doWithTab(tabIndex: number, editor: EditorInput, fn: (editor: EditorInput, tabIndex: number, tabContainer: HTMLElement, tabLabelWidget: IResourceLabel, tabLabel: IEditorInputLabel, tabActionBar: ActionBar) => void): void {
-		const tabsContainer = assertReturnsDefined(this.tabsContainer);
+		if (!this.tabsContainer) {
+			return;
+		}
+		const tabsContainer = this.tabsContainer;
 		const tabContainer = tabsContainer.children[tabIndex] as HTMLElement;
 		const tabResourceLabel = this.tabResourceLabels.get(tabIndex);
 		const tabLabel = this.tabLabels[tabIndex];
@@ -1878,7 +1890,10 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 	}
 
 	private doLayoutTabsWrapping(dimensions: IEditorTitleControlDimensions): boolean {
-		const [tabsAndActionsContainer, tabsContainer, editorToolbarContainer, tabsScrollbar] = assertReturnsAllDefined(this.tabsAndActionsContainer, this.tabsContainer, this.editorActionsToolbarContainer, this.tabsScrollbar);
+		if (!this.tabsAndActionsContainer || !this.tabsContainer || !this.editorActionsToolbarContainer || !this.tabsScrollbar) {
+			return false;
+		}
+		const [tabsAndActionsContainer, tabsContainer, editorToolbarContainer, tabsScrollbar] = [this.tabsAndActionsContainer, this.tabsContainer, this.editorActionsToolbarContainer, this.tabsScrollbar];
 
 		// Handle wrapping tabs according to setting:
 		// - enabled: only add class if tabs wrap and don't exceed available dimensions
@@ -2012,7 +2027,10 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 	}
 
 	private doLayoutTabsNonWrapping(options?: IMultiEditorTabsControlLayoutOptions): void {
-		const [tabsContainer, tabsScrollbar] = assertReturnsAllDefined(this.tabsContainer, this.tabsScrollbar);
+		if (!this.tabsContainer || !this.tabsScrollbar) {
+			return;
+		}
+		const [tabsContainer, tabsScrollbar] = [this.tabsContainer, this.tabsScrollbar];
 
 		//
 		// Synopsis
@@ -2156,7 +2174,10 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 	}
 
 	private updateTabsControlVisibility(): void {
-		const tabsAndActionsContainer = assertReturnsDefined(this.tabsAndActionsContainer);
+		if (!this.tabsAndActionsContainer) {
+			return;
+		}
+		const tabsAndActionsContainer = this.tabsAndActionsContainer;
 		tabsAndActionsContainer.classList.toggle('empty', !this.visible);
 
 		// Reset dimensions if hidden
@@ -2181,7 +2202,10 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 
 	private getTabAtIndex(tabIndex: number): HTMLElement | undefined {
 		if (tabIndex >= 0) {
-			const tabsContainer = assertReturnsDefined(this.tabsContainer);
+			if (!this.tabsContainer) {
+				return undefined;
+			}
+			const tabsContainer = this.tabsContainer;
 
 			return tabsContainer.children[tabIndex] as HTMLElement | undefined;
 		}
