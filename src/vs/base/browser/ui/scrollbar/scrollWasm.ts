@@ -17,7 +17,8 @@ async function ensureWasm(): Promise<any> {
 	if (!initPromise) {
 		initPromise = (async () => {
 			try {
-				const mod = await import('/wasm/scroll/sidex_scroll_wasm.js');
+				const wasmPath = '/wasm/scroll/sidex_scroll_wasm.js';
+				const mod = await import(/* @vite-ignore */ wasmPath);
 				await mod.default();
 				wasmModule = mod;
 			} catch (e) {

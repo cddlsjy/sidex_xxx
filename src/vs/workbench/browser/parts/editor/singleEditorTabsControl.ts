@@ -186,6 +186,9 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 	unstickEditor(editor: EditorInput): void { }
 
 	setActive(isActive: boolean): void {
+		if (!this.titleContainer) {
+			return;
+		}
 		this.redraw();
 	}
 
@@ -197,7 +200,10 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 
 	updateEditorDirty(editor: EditorInput): void {
 		this.ifEditorIsActive(editor, () => {
-			const titleContainer = assertReturnsDefined(this.titleContainer);
+			if (!this.titleContainer) {
+				return;
+			}
+			const titleContainer = this.titleContainer;
 
 			// Signal dirty (unless saving)
 			if (editor.isDirty() && !editor.isSaving()) {
@@ -224,8 +230,10 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 	}
 
 	protected handleBreadcrumbsEnablementChange(): void {
-		const titleContainer = assertReturnsDefined(this.titleContainer);
-		titleContainer.classList.toggle('breadcrumbs', Boolean(this.breadcrumbsControl));
+		if (!this.titleContainer) {
+			return;
+		}
+		this.titleContainer.classList.toggle('breadcrumbs', Boolean(this.breadcrumbsControl));
 
 		this.redraw();
 	}
@@ -280,6 +288,9 @@ export class SingleEditorTabsControl extends EditorTabsControl {
 		}
 
 		// Clear if there is no editor
+		if (!this.titleContainer || !this.editorLabel) {
+			return;
+		}
 		const [titleContainer, editorLabel] = assertReturnsAllDefined(this.titleContainer, this.editorLabel);
 		if (!editor) {
 			titleContainer.classList.remove('dirty');

@@ -734,30 +734,66 @@ class TauriGitSCMProvider extends Disposable implements ISCMProvider {
 		const total = stagedResources.length + changesResources.length;
 		this._count.set(total, undefined);
 
+		let ahead = 0;
+		let behind = 0;
+		try {
+			const invoke = await getTauriInvoke();
+			if (invoke) {
+				const output = (await invoke('git_run', {
+					path: rootPath,
+					args: ['rev-list', '--left-right', '--count', `HEAD...@{upstream}`],
+				}) as string).trim();
+				const parts = output.split(/\s+/);
+				ahead = parseInt(parts[0], 10) || 0;
+				behind = parseInt(parts[1], 10) || 0;
+			}
+		} catch {
+			// No upstream configured or remote unreachable
+		}
+
 		this._statusBarCommands.set([{
 			id: 'tauri-git.checkoutTo',
 			title: `$(git-branch) ${this._branch}${total > 0 ? '*' : ''}`,
 			tooltip: `Branch: ${this._branch}${total > 0 ? ' (modified)' : ''}`,
 		}, {
 			id: 'tauri-git.sync',
-			title: '$(sync)',
+			title: ahead > 0 || behind > 0
+				? `$(sync) ${behind}$(arrow-down) ${ahead}$(arrow-up)`
+				: '$(sync)',
 			tooltip: 'Synchronize Changes',
 		}], undefined);
 
-		this._actionButton.set({
-			command: { id: 'tauri-git.commit', title: '$(check) Commit' },
-			secondaryCommands: [
-				[
-					{ id: 'tauri-git.commit', title: 'Commit' },
-					{ id: 'tauri-git.commitAmend', title: 'Commit (Amend)' },
+		if (total === 0 && ahead > 0) {
+			const syncLabel = behind > 0
+				? `$(sync) Sync Changes ${behind}$(arrow-down) ${ahead}$(arrow-up)`
+				: `$(sync) Sync Changes ${ahead}$(arrow-up)`;
+			this._actionButton.set({
+				command: { id: 'tauri-git.sync', title: syncLabel },
+				secondaryCommands: [
+					[
+						{ id: 'tauri-git.sync', title: 'Sync' },
+						{ id: 'tauri-git.push', title: 'Push' },
+						{ id: 'tauri-git.pull', title: 'Pull' },
+					],
 				],
-				[
-					{ id: 'tauri-git.commitAndPush', title: 'Commit & Push' },
-					{ id: 'tauri-git.commitAndSync', title: 'Commit & Sync' },
+				enabled: true,
+			}, undefined);
+		} else {
+			this._actionButton.set({
+				command: { id: 'tauri-git.commit', title: '$(check) Commit' },
+				secondaryCommands: [
+					[
+						{ id: 'tauri-git.commit', title: 'Commit' },
+						{ id: 'tauri-git.commitAmend', title: 'Commit (Amend)' },
+					],
+					[
+						{ id: 'tauri-git.commitAndPush', title: 'Commit & Push' },
+						{ id: 'tauri-git.commitAndSync', title: 'Commit & Sync' },
+					],
 				],
-			],
-			enabled: true,
-		}, undefined);
+				enabled: true,
+			}, undefined);
+		}
 
 		this._onDidChangeResources.fire();
 	}
