@@ -31,7 +31,18 @@ export default defineConfig({
         extensionHostWorker: path.resolve(__dirname, 'src/vs/workbench/api/worker/extensionHostWorkerMain.ts'),
       },
       output: {
-        entryFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: (chunkInfo) => {
+          if (chunkInfo.name === 'editorWorker') {
+            return 'assets/editorWorker.js';
+          }
+          if (chunkInfo.name === 'textMateWorker') {
+            return 'assets/textMateWorker.js';
+          }
+          if (chunkInfo.name === 'extensionHostWorker') {
+            return 'assets/extensionHostWorker.js';
+          }
+          return 'assets/[name]-[hash].js';
+        },
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
           if ((assetInfo.name ?? '').endsWith('.ts')) {
