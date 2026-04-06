@@ -91,6 +91,25 @@ pub struct WindowState {
 
 const WINDOW_STATE_KEY: &str = "sidex.windowState";
 
+pub fn restore_and_show(app: &tauri::App, db: &StorageDb) {
+    let window = match app.get_webview_window("main") {
+        Some(w) => w,
+        None => return,
+    };
+
+    if let Ok(Some(json)) = db.get(WINDOW_STATE_KEY) {
+        if let Ok(state) = serde_json::from_str::<WindowState>(&json) {
+            let _ = window.set_position(tauri::PhysicalPosition::new(state.x, state.y));
+            let _ = window.set_size(tauri::PhysicalSize::new(state.width, state.height));
+            if state.maximized {
+                let _ = window.maximize();
+            }
+        }
+    }
+
+    let _ = window.show();
+}
+
 #[tauri::command]
 pub fn save_window_state(
     app: AppHandle,
@@ -116,28 +135,4 @@ pub fn save_window_state(
     let json = serde_json::to_string(&state).map_err(|e| e.to_string())?;
     db.set(WINDOW_STATE_KEY, &json)?;
     Ok(())
-}
-
-#[tauri::command]
-pub fn restore_window_state(
-    app: AppHandle,
-    label: String,
-    db: tauri::State<'_, Arc<StorageDb>>,
-) -> Result<bool, String> {
-    let json = match db.get(WINDOW_STATE_KEY)? {
-        Some(j) => j,
-        None => return Ok(false),
-    };
-
-    let state: WindowState = serde_json::from_str(&json).map_err(|e| e.to_string())?;
-    let window = app
-        .get_webview_window(&label)
-        .ok_or_else(|| format!("window '{}' not found", label))?;
-
-    let _ = window.set_position(tauri::PhysicalPosition::new(state.x, state.y));
-    let _ = window.set_size(tauri::PhysicalSize::new(state.width, state.height));
-    if state.maximized {
-        let _ = window.maximize();
-    }
-    Ok(true)
 }

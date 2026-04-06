@@ -8,6 +8,16 @@ fn extensions_dir() -> PathBuf {
     home.join(".sidex").join("extensions")
 }
 
+fn sanitize_ext_id(id: &str) -> Result<String, String> {
+    let clean: String = id.chars()
+        .filter(|c| c.is_alphanumeric() || *c == '.' || *c == '-' || *c == '_')
+        .collect();
+    if clean.is_empty() || clean.contains("..") {
+        return Err(format!("invalid extension id: {id}"));
+    }
+    Ok(clean)
+}
+
 #[derive(Debug, Serialize)]
 pub struct InstalledExtension {
     pub id: String,
@@ -28,7 +38,8 @@ pub async fn install_extension(vsix_path: String) -> Result<InstalledExtension, 
 
     let manifest = read_vsix_manifest(&mut archive)?;
 
-    let ext_dir = extensions_dir().join(&manifest.id);
+    let safe_id = sanitize_ext_id(&manifest.id)?;
+    let ext_dir = extensions_dir().join(&safe_id);
     if ext_dir.exists() {
         fs::remove_dir_all(&ext_dir).map_err(|e| format!("cleanup: {e}"))?;
     }
@@ -40,9 +51,6 @@ pub async fn install_extension(vsix_path: String) -> Result<InstalledExtension, 
         let raw_name = entry.name().to_string();
 
         if !raw_name.starts_with(prefix) {
-            if raw_name == "[Content_Types].xml" || raw_name.starts_with("extension.vsixmanifest") {
-                continue;
-            }
             continue;
         }
 
@@ -65,10 +73,10 @@ pub async fn install_extension(vsix_path: String) -> Result<InstalledExtension, 
         }
     }
 
-    log::info!("installed extension {} to {}", manifest.id, ext_dir.display());
+    log::info!("installed extension {} to {}", safe_id, ext_dir.display());
 
     Ok(InstalledExtension {
-        id: manifest.id,
+        id: safe_id,
         name: manifest.name,
         version: manifest.version,
         path: ext_dir.to_string_lossy().to_string(),
@@ -77,7 +85,8 @@ pub async fn install_extension(vsix_path: String) -> Result<InstalledExtension, 
 
 #[tauri::command]
 pub async fn uninstall_extension(extension_id: String) -> Result<(), String> {
-    let ext_dir = extensions_dir().join(&extension_id);
+    let safe_id = sanitize_ext_id(&extension_id)?;
+    let ext_dir = extensions_dir().join(&safe_id);
     if !ext_dir.exists() {
         return Err(format!("not installed: {}", extension_id));
     }

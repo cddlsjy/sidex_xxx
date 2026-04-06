@@ -1,7 +1,6 @@
 mod commands;
 
 use commands::debug::DebugAdapterStore;
-use commands::doc::DocStore;
 use commands::ext_host::ExtHostProcess;
 use commands::index::IndexStore;
 use commands::logging::LoggerStore;
@@ -10,6 +9,7 @@ use commands::storage::StorageDb;
 use commands::tasks::TaskProcessStore;
 use commands::terminal::TerminalStore;
 use commands::watch::WatchStore;
+use commands::window::restore_and_show;
 use std::sync::Arc;
 use tauri::Manager;
 use tauri::menu::{Menu, MenuItemBuilder, SubmenuBuilder, PredefinedMenuItem};
@@ -177,14 +177,12 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Arc::new(TerminalStore::new()))
         .manage(Arc::new(ProcessStore::new()))
         .manage(Arc::new(DebugAdapterStore::new()))
         .manage(Arc::new(TaskProcessStore::new()))
         .manage(Arc::new(WatchStore::new()))
         .manage(Arc::new(IndexStore::new(true)))
-        .manage(Arc::new(DocStore::new()))
         .manage(Arc::new(LoggerStore::new()))
         .manage(ExtHostProcess::new())
         .setup(|app| {
@@ -196,12 +194,13 @@ pub fn run() {
             let db_path = app_data.join("sidex_storage.db");
             let db = StorageDb::new(db_path.to_str().unwrap())
                 .expect("failed to initialize storage database");
+
+            // Restore window position/size before showing — zero flicker
+            restore_and_show(app, &db);
+
             app.manage(Arc::new(db));
 
             // Set app handle for stores to enable event emission
-            let doc_store = app.state::<Arc<DocStore>>();
-            doc_store.set_app_handle(app.handle().clone());
-            
             let process_store = app.state::<Arc<ProcessStore>>();
             process_store.set_app_handle(app.handle().clone());
 
@@ -309,7 +308,6 @@ pub fn run() {
             commands::set_window_title,
             commands::get_monitors,
             commands::save_window_state,
-            commands::restore_window_state,
             commands::get_os_info,
             commands::get_env,
             commands::get_all_env,
@@ -373,24 +371,6 @@ pub fn run() {
             commands::index_update,
             commands::index_stats,
             commands::index_clear,
-            // Document management
-            commands::doc_open,
-            commands::doc_get,
-            commands::doc_edit,
-            commands::doc_stats,
-            commands::doc_save,
-            commands::doc_close,
-            commands::doc_undo,
-            commands::doc_redo,
-            commands::doc_autosave,
-            commands::doc_list,
-            commands::doc_is_dirty,
-            commands::doc_path,
-            commands::doc_trigger_autosave,
-            commands::doc_encoding_info,
-            commands::doc_set_line_endings,
-            commands::doc_position_to_offset,
-            commands::doc_offset_to_position,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

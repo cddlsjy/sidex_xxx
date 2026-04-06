@@ -6,12 +6,13 @@ use std::os::windows::process::CommandExt;
 
 /// Create a `Command` for git with CREATE_NO_WINDOW on Windows.
 fn git_command() -> Command {
-    let mut cmd = Command::new("git");
+    let cmd = Command::new("git");
+    #[cfg(target_os = "windows")]
+    let mut cmd = cmd;
     #[cfg(target_os = "windows")]
     cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
     cmd
 }
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GitChange {
     pub path: String,

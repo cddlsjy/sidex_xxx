@@ -177,7 +177,7 @@ async function boot() {
 
 	setupTauriExternalOpener();
 	setupMenuActions();
-	setupWindowStateRestore();
+	setupWindowStateSave();
 
 	console.log('[SideX] Workbench created' + (folderParam ? ` (folder: ${folderParam})` : ' (no folder)'), 'workspace:', workspace);
 }
@@ -203,10 +203,8 @@ function setupTauriExternalOpener() {
 	}).catch(() => {});
 }
 
-function setupWindowStateRestore() {
+function setupWindowStateSave() {
 	import('@tauri-apps/api/core').then(({ invoke }) => {
-		invoke('restore_window_state', { label: 'main' }).catch(() => {});
-
 		let saveTimer: ReturnType<typeof setTimeout> | null = null;
 		const debouncedSave = () => {
 			if (saveTimer) { clearTimeout(saveTimer); }

@@ -1,7 +1,6 @@
 pub mod compress;
 pub mod crypto;
 pub mod debug;
-pub mod doc;
 pub mod ext_host;
 pub mod extensions;
 pub mod fs;
@@ -23,7 +22,6 @@ pub mod window;
 pub use compress::*;
 pub use crypto::*;
 pub use debug::*;
-pub use doc::*;
 pub use ext_host::*;
 pub use extensions::*;
 pub use fs::*;
