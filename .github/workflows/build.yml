@@ -1,8 +1,9 @@
 name: Build SideX
+
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # 允许手动触发
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   build:
@@ -11,27 +12,75 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    steps:
-      # 1. 检出代码
-      - uses: actions/checkout@v4
 
-      # 2. 安装 Node.js
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # 3. 安装 Rust (通过社区Action)
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
-      # 4. 安装前端依赖
       - name: Install npm dependencies
         run: npm install
 
-      # 5. 构建并生成应用包
+      # Linux 需要额外依赖
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      # 构建应用 (Windows 限制内存，Linux 禁用 DMABUF)
       - name: Build SideX
-        run: npm run tauri build
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            export WEBKIT_DISABLE_DMABUF_RENDERER=1
+          elif [ "${{ matrix.os }}" = "windows-latest" ]; then
+            export NODE_OPTIONS="--max-old-space-size=12288"
+          fi
+          npm run tauri build
+
+      # 上传 macOS 产物 (.dmg)
+      - name: Upload macOS Artifact
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SideX-macOS
+          path: src-tauri/target/release/bundle/dmg/*.dmg
+
+      # 上传 Windows 产物 (.msi / .exe)
+      - name: Upload Windows Artifact
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SideX-Windows
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+
+      # 上传 Linux 产物 (.deb / .AppImage)
+      - name: Upload Linux Artifact
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SideX-Linux
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
